@@ -56,6 +56,9 @@
   - `dryRun: false` 時の本 import
     - `imports` レコード作成
     - `areas` の州レベル自動作成
+    - `Nominatim` による住所解決
+    - `properties.resolved_address` / `properties.postal_code` 更新
+    - `areas` の郵便番号エリアレベル自動作成
     - `properties` 作成
     - `property_transactions` 作成
 
@@ -95,11 +98,9 @@
 
 - 本 import は関数側で実装済み
 - 未実装:
-  - 住所解決
-  - 郵便番号解決
-  - `postal_code_area` レベルの `areas` 自動登録
   - 既存物件更新時の補完ロジック強化
   - dry-run 結果から本 import 実行へ進む導線
+  - Nominatim 問い合わせ件数の最適化と再試行戦略
 
 ### 管理画面
 
@@ -136,14 +137,17 @@
   - `UTF-16LE + TSV` 固定をやめ、`UTF-8 + CSV` も読めるように修正
 - 本 import 動作確認
   - `Open Transaction Data (3).csv` で `imports=1`, `properties=5`, `property_transactions=9`, `areas=1` を確認
+- ジオコーディング動作確認
+  - `Open Transaction Data (3).csv` の本 import で `6 CAPSQUARE`, `2 HAMPSHIRE` に `postal_code` と `resolved_address` を付与
+  - `area_level=2` の `areas` に `50100`, `50450` が登録されることを確認
 
 ## 次にやること
 
-1. 住所解決と郵便番号解決を `import-transactions` に追加する
-2. `postal_code_area` レベルの `areas` 登録を追加する
-3. 物件編集画面を実データ取得・保存に接続する
-4. 管理画面ダッシュボードの数値を実データ化する
-5. `souba` 公開画面を実データに接続する
+1. 物件編集画面を実データ取得・保存に接続する
+2. 管理画面ダッシュボードの数値を実データ化する
+3. `souba` 公開画面を実データに接続する
+4. dry-run 結果画面から本 import 実行へ進める UI を追加する
+5. Nominatim の再試行・キャッシュ戦略を追加する
 
 ## 現在のローカル前提
 

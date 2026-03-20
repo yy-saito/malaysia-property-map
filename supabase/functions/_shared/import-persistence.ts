@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { buildImportPreview } from './import-parser.ts'
+import { geocodeProperties, type GeocodedProperty } from './geocoding.ts'
 import type {
   ImportPayload,
   ImportPreview,
@@ -20,16 +21,29 @@ type AreaRow = {
   id: string
   area_level: number
   state_name: string | null
+  postal_code?: string | null
+  latitude?: number | null
+  longitude?: number | null
 }
 
 type PropertyRow = {
   id: string
   scheme_name: string
+  area_id?: string | null
+  resolved_address?: string | null
   postal_code: string | null
   is_data_complete: boolean
 }
 
 const normalizeKey = (value: string) => value.trim().toLowerCase()
+const toNullableText = (value: string | null | undefined) => {
+  if (!value) {
+    return null
+  }
+
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
+}
 
 const createAdminClient = () => {
   const url = Deno.env.get('IMPORT_SUPABASE_URL')
@@ -152,7 +166,7 @@ const ensureProperties = async (
 ) => {
   const { data: existingProperties, error: existingError } = await supabase
     .from('properties')
-    .select('id, scheme_name, postal_code, is_data_complete')
+    .select('id, scheme_name, area_id, resolved_address, postal_code, is_data_complete')
 
   if (existingError) {
     throw new Error(`property_fetch_failed:${existingError.message}`)
@@ -190,7 +204,7 @@ const ensureProperties = async (
     const { data: insertedProperties, error: insertError } = await supabase
       .from('properties')
       .insert(insertPayload)
-      .select('id, scheme_name, postal_code, is_data_complete')
+      .select('id, scheme_name, area_id, resolved_address, postal_code, is_data_complete')
 
     if (insertError) {
       throw new Error(`property_insert_failed:${insertError.message}`)
@@ -209,6 +223,141 @@ const ensureProperties = async (
   }
 }
 
+const ensurePostalAreas = async (
+  supabase: SupabaseAdmin,
+  geocodedMap: Map<string, GeocodedProperty>,
+) => {
+  const postalCodes = [...new Set(
+    [...geocodedMap.values()]
+      .map((value) => value.postalCode)
+      .filter((value): value is string => Boolean(value)),
+  )]
+
+  const { data: existingAreas, error: existingError } = await supabase
+    .from('areas')
+    .select('id, area_level, state_name, postal_code, latitude, longitude')
+    .eq('area_level', 2)
+
+  if (existingError) {
+    throw new Error(`postal_area_fetch_failed:${existingError.message}`)
+  }
+
+  const postalAreaMap = new Map<string, AreaRow>()
+  ;(existingAreas ?? []).forEach((area) => {
+    if (area.postal_code) {
+      postalAreaMap.set(area.postal_code, area as AreaRow)
+    }
+  })
+
+  const missingPostalCodes = postalCodes.filter((postalCode) => !postalAreaMap.has(postalCode))
+
+  let newPostalAreasCount = 0
+
+  if (missingPostalCodes.length > 0) {
+    const insertPayload = missingPostalCodes.map((postalCode) => {
+      const geocoded = [...geocodedMap.values()].find((value) => value.postalCode === postalCode)
+      const postalAreaName = toNullableText(geocoded?.postalAreaName)
+      const stateName = toNullableText(geocoded?.stateName)
+      const displayName = postalAreaName
+        ? `${postalCode} ${postalAreaName}`
+        : stateName
+          ? `${postalCode} ${stateName}`
+          : postalCode
+
+      return {
+        area_level: 2,
+        country: 'Malaysia',
+        state_name: stateName,
+        postal_code: postalCode,
+        postal_area_name: postalAreaName,
+        display_name: displayName,
+        latitude: geocoded?.latitude ?? null,
+        longitude: geocoded?.longitude ?? null,
+      }
+    })
+
+    const { data: insertedAreas, error: insertError } = await supabase
+      .from('areas')
+      .insert(insertPayload)
+      .select('id, area_level, state_name, postal_code, latitude, longitude')
+
+    if (insertError) {
+      throw new Error(`postal_area_insert_failed:${insertError.message}`)
+    }
+
+    ;(insertedAreas ?? []).forEach((area) => {
+      if (area.postal_code) {
+        postalAreaMap.set(area.postal_code, area as AreaRow)
+      }
+    })
+
+    newPostalAreasCount = insertedAreas?.length ?? 0
+  }
+
+  return {
+    postalAreaMap,
+    newPostalAreasCount,
+  }
+}
+
+const applyPropertyGeocoding = async (
+  supabase: SupabaseAdmin,
+  propertyMap: Map<string, PropertyRow>,
+  geocodedMap: Map<string, GeocodedProperty>,
+  postalAreaMap: Map<string, AreaRow>,
+  stateAreaMap: Map<string, AreaRow>,
+) => {
+  const updates = [...propertyMap.entries()]
+    .map(([key, property]) => {
+      const geocoded = geocodedMap.get(key)
+      if (!geocoded) {
+        return null
+      }
+
+      const postalAreaId = geocoded.postalCode
+        ? postalAreaMap.get(geocoded.postalCode)?.id ?? null
+        : null
+      const stateAreaId = geocoded.stateName
+        ? stateAreaMap.get(normalizeKey(geocoded.stateName))?.id ?? null
+        : null
+
+      return {
+        id: property.id,
+        area_id: postalAreaId ?? stateAreaId ?? property.area_id ?? null,
+        resolved_address: toNullableText(geocoded.resolvedAddress) ?? property.resolved_address ?? null,
+        postal_code: toNullableText(geocoded.postalCode) ?? property.postal_code ?? null,
+      }
+    })
+    .filter((value): value is NonNullable<typeof value> => Boolean(value))
+
+  if (updates.length === 0) {
+    return propertyMap
+  }
+
+  const nextPropertyMap = new Map(propertyMap)
+
+  for (const update of updates) {
+    const { data, error } = await supabase
+      .from('properties')
+      .update({
+        area_id: update.area_id,
+        resolved_address: update.resolved_address,
+        postal_code: update.postal_code,
+      })
+      .eq('id', update.id)
+      .select('id, scheme_name, area_id, resolved_address, postal_code, is_data_complete')
+      .single<PropertyRow>()
+
+    if (error || !data) {
+      throw new Error(`property_geocoding_update_failed:${error?.message ?? 'unknown_error'}`)
+    }
+
+    nextPropertyMap.set(normalizeKey(data.scheme_name), data)
+  }
+
+  return nextPropertyMap
+}
+
 const insertTransactions = async (
   supabase: SupabaseAdmin,
   rows: NormalizedTransactionRow[],
@@ -219,7 +368,11 @@ const insertTransactions = async (
 ) => {
   const transactionPayload = rows.map((row) => {
     const property = propertyMap.get(normalizeKey(row.schemeName))
-    const area = row.district ? areaMap.get(normalizeKey(row.district)) : null
+    const area = property?.area_id
+      ? { id: property.area_id }
+      : row.district
+        ? areaMap.get(normalizeKey(row.district))
+        : null
 
     if (!property) {
       throw new Error(`property_missing_for_transaction:${row.schemeName}`)
@@ -301,11 +454,23 @@ export const persistImport = async (
 
   try {
     const propertyType = await getPropertyType(supabase)
-    const { areaMap, newAreasCount } = await ensureStateAreas(supabase, rows)
+    const { areaMap, newAreasCount: newStateAreasCount } = await ensureStateAreas(supabase, rows)
     const { propertyMap, newPropertiesCount } = await ensureProperties(
       supabase,
       rows,
       propertyType.id,
+      areaMap,
+    )
+    const existingPostalCodes = new Map(
+      [...propertyMap.entries()].map(([key, property]) => [key, property.postal_code]),
+    )
+    const geocodedMap = await geocodeProperties(rows, existingPostalCodes)
+    const { postalAreaMap, newPostalAreasCount } = await ensurePostalAreas(supabase, geocodedMap)
+    const hydratedPropertyMap = await applyPropertyGeocoding(
+      supabase,
+      propertyMap,
+      geocodedMap,
+      postalAreaMap,
       areaMap,
     )
 
@@ -315,12 +480,16 @@ export const persistImport = async (
       importId,
       propertyType.id,
       areaMap,
-      propertyMap,
+      hydratedPropertyMap,
     )
 
-    const unresolvedAddressesCount = [...propertyMap.values()].filter(
+    const unresolvedAddressesCount = [...hydratedPropertyMap.values()].filter(
       (property) => !property.postal_code,
     ).length
+    const unresolvedCoordinatesCount = [...postalAreaMap.values()].filter(
+      (area) => area.latitude == null || area.longitude == null,
+    ).length
+    const newAreasCount = newStateAreasCount + newPostalAreasCount
 
     await updateImportStatus(supabase, importId, {
       status: 'completed',
@@ -330,17 +499,17 @@ export const persistImport = async (
       newAreasCount,
       newPropertiesCount,
       unresolvedAddressesCount,
-      unresolvedCoordinatesCount: 0,
+      unresolvedCoordinatesCount,
     })
 
     const preview = buildImportPreview(payload, rows, skipped)
     preview.summary.newAreas = newAreasCount
     preview.summary.newProperties = newPropertiesCount
     preview.summary.unresolvedAddresses = unresolvedAddressesCount
-    preview.summary.unresolvedCoordinates = 0
+    preview.summary.unresolvedCoordinates = unresolvedCoordinatesCount
     preview.summary.dryRun = false
     preview.properties = preview.properties.map((property) => {
-      const persistedProperty = propertyMap.get(normalizeKey(property.schemeName))
+      const persistedProperty = hydratedPropertyMap.get(normalizeKey(property.schemeName))
 
       return {
         ...property,
