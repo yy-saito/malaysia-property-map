@@ -9,7 +9,7 @@ CSV インポート処理の実行結果を管理する。
 | カラム名 | 型 | 必須 | 説明 |
 | ------ | ------ | ------ | ------ |
 | id | uuid | ○ | 主キー |
-| executed_by_user_id | uuid |  | 実行ユーザー ID |
+| executed_by_user_id | uuid | ○ | 実行ユーザー ID |
 | source_file_name | text | ○ | 取込元ファイル名 |
 | total_rows | integer | ○ | 総行数 |
 | imported_rows | integer | ○ | 取込成功行数 |
@@ -26,3 +26,4 @@ CSV インポート処理の実行結果を管理する。
 
 - CSV 取り込み結果画面の表示元となる
 - `property_transactions.import_id` と紐付ける
+- 初期フェーズでも実行ユーザーは必ず記録する
