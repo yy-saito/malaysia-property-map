@@ -13,6 +13,9 @@ type AggregateBucket = {
   totalPrice: number
   totalFloorArea: number
   floorAreaCount: number
+  latitudeSum: number
+  longitudeSum: number
+  coordinateCount: number
 }
 
 const sortByAveragePriceDesc = (left: SoubaAreaStat, right: SoubaAreaStat) => {
@@ -44,6 +47,9 @@ const createBucket = (
     totalPrice: 0,
     totalFloorArea: 0,
     floorAreaCount: 0,
+    latitudeSum: latitude ?? 0,
+    longitudeSum: longitude ?? 0,
+    coordinateCount: latitude !== null && longitude !== null ? 1 : 0,
   }
 }
 
@@ -54,8 +60,8 @@ const toAreaStat = (bucket: AggregateBucket): SoubaAreaStat => {
     areaLevel: bucket.areaLevel,
     stateName: bucket.stateName,
     postalCode: bucket.postalCode,
-    latitude: bucket.latitude,
-    longitude: bucket.longitude,
+    latitude: bucket.coordinateCount > 0 ? bucket.latitudeSum / bucket.coordinateCount : bucket.latitude,
+    longitude: bucket.coordinateCount > 0 ? bucket.longitudeSum / bucket.coordinateCount : bucket.longitude,
     transactionCount: bucket.transactionCount,
     averagePrice: bucket.transactionCount > 0 ? bucket.totalPrice / bucket.transactionCount : 0,
     averageFloorArea:
@@ -111,6 +117,12 @@ export const mapAggregationService = {
       if (typeof row.floor_area === 'number') {
         current.totalFloorArea += row.floor_area
         current.floorAreaCount += 1
+      }
+
+      if (typeof sourceArea.latitude === 'number' && typeof sourceArea.longitude === 'number') {
+        current.latitudeSum += sourceArea.latitude
+        current.longitudeSum += sourceArea.longitude
+        current.coordinateCount += 1
       }
 
       bucketMap.set(bucketKey, current)

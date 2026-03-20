@@ -30,8 +30,10 @@
         style="border-radius: 32px; box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);"
       >
         <SoubaMapCanvas
+          :items="items"
           :selected-area="selectedArea"
           :is-loading="isLoading"
+          @select="selectArea"
         />
       </div>
     </div>

@@ -112,10 +112,12 @@
 
 ### 公開画面
 
-- `souba` はダミー UI 段階
-- 実データ取得未接続
-- 地図ライブラリ未接続
-- 州 / 郵便番号エリアの表示切替未実装
+- `souba` は実データ接続済み
+- 州 / 郵便番号エリアの表示切替実装済み
+- 価格帯フィルタ実装済み
+- `Leaflet` による実地図表示を実装済み
+- エリア一覧と地図マーカーの選択連動を実装済み
+- ただし初期実装では `property_transactions` をフロント側で集計しており、大量データ時は RPC / 集計ビュー化が必要
 
 ## 直近で対応した問題
 
@@ -140,6 +142,10 @@
   - `imports`
   - `users`
   を Supabase REST 直結で集計する repository / composable を追加
+- 公開 `souba` 実データ化
+  - `property_transactions -> areas` を Supabase REST 直結で取得
+  - 州 / 郵便番号エリア単位の集計をフロントで実装
+  - `Leaflet` の円マーカーで地図表示を実装
 - `import.meta.client` 使用箇所を安全なランタイム判定へ変更
 - `import-transactions` の `401 Unauthorized`
   - ローカル開発用に `supabase/config.toml` で `verify_jwt = false` を設定
@@ -156,10 +162,9 @@
 
 ## 次にやること
 
-1. `souba` 公開画面を実データに接続する
-2. dry-run 結果画面から本 import 実行へ進める UI を追加する
-3. Nominatim の再試行・キャッシュ戦略を追加する
-4. 管理者一覧 / メンバー一覧を実データ接続する
+1. `souba` 集計を RPC / 集計ビュー化するかを検討し、必要なら切り替える
+2. Nominatim の再試行・キャッシュ戦略を追加する
+3. 管理者一覧 / メンバー一覧を実データ接続する
 
 ## 現在のローカル前提
 
