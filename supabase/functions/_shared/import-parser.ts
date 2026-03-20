@@ -21,6 +21,17 @@ const TRANSACTION_DATE_HEADER = 'transactiondate'
 const TARGET_PROPERTY_TYPE = 'Condominium/Apartment'
 
 const normalizeHeader = (value: string) => value.replace(/^\ufeff/, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase()
+const detectEncoding = (bytes: Uint8Array) => {
+  if (bytes.length >= 2 && bytes[0] === 0xff && bytes[1] === 0xfe) {
+    return 'utf-16le'
+  }
+
+  if (bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) {
+    return 'utf-8'
+  }
+
+  return 'utf-8'
+}
 
 const parseNumber = (value: string | undefined) => {
   if (!value) {
@@ -109,7 +120,40 @@ const decodeBase64 = (base64: string) => {
 
 export const decodeTransactionFile = (contentBase64: string) => {
   const bytes = decodeBase64(contentBase64)
-  return new TextDecoder('utf-16le').decode(bytes)
+  return new TextDecoder(detectEncoding(bytes)).decode(bytes)
+}
+
+const parseDelimitedLine = (line: string, delimiter: string) => {
+  const values: string[] = []
+  let current = ''
+  let isQuoted = false
+
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index]
+    const nextChar = line[index + 1]
+
+    if (char === '"') {
+      if (isQuoted && nextChar === '"') {
+        current += '"'
+        index += 1
+        continue
+      }
+
+      isQuoted = !isQuoted
+      continue
+    }
+
+    if (char === delimiter && !isQuoted) {
+      values.push(current)
+      current = ''
+      continue
+    }
+
+    current += char
+  }
+
+  values.push(current)
+  return values
 }
 
 export const parseTsv = (input: string): RawTransactionRow[] => {
@@ -122,10 +166,11 @@ export const parseTsv = (input: string): RawTransactionRow[] => {
     return []
   }
 
-  const headers = lines[0].split('\t').map((header) => normalizeHeader(header))
+  const delimiter = lines[0].includes('\t') ? '\t' : ','
+  const headers = parseDelimitedLine(lines[0], delimiter).map((header) => normalizeHeader(header))
 
   return lines.slice(1).map((line) => {
-    const values = line.split('\t')
+    const values = parseDelimitedLine(line, delimiter)
     const row: RawTransactionRow = {}
 
     headers.forEach((header, index) => {

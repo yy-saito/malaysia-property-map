@@ -27,3 +27,6 @@ port = 55327
 [storage]
 enabled = true
 file_size_limit = "50MiB"
+
+[functions.import-transactions]
+verify_jwt = false
