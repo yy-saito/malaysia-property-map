@@ -1,4 +1,4 @@
-import type { PropertyListFilter, PropertyListItem } from '~/types/models'
+import type { Property, PropertyListFilter, PropertyListItem, PropertyUpdatePayload } from '~/types/models'
 import { useSupabaseBrowserClient } from '~/lib/supabase/client'
 
 export const propertyRepository = {
@@ -30,5 +30,36 @@ export const propertyRepository = {
     }
 
     return (data ?? []) as PropertyListItem[]
+  },
+
+  async fetchById(id: string) {
+    const client = useSupabaseBrowserClient()
+    const { data, error } = await client
+      .from('properties')
+      .select('id, scheme_name, resolved_address, postal_code, tenure, completed_year, note, area_id, is_data_complete')
+      .eq('id', id)
+      .single()
+
+    if (error) {
+      throw error
+    }
+
+    return data as Property
+  },
+
+  async update(id: string, payload: PropertyUpdatePayload) {
+    const client = useSupabaseBrowserClient()
+    const { data, error } = await client
+      .from('properties')
+      .update(payload)
+      .eq('id', id)
+      .select('id, scheme_name, resolved_address, postal_code, tenure, completed_year, note, area_id, is_data_complete')
+      .single()
+
+    if (error) {
+      throw error
+    }
+
+    return data as Property
   },
 }
