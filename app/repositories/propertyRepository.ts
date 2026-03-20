@@ -1,4 +1,10 @@
-import type { Property, PropertyListFilter, PropertyListItem, PropertyUpdatePayload } from '~/types/models'
+import type {
+  Property,
+  PropertyListFilter,
+  PropertyListPageSize,
+  PropertyListResult,
+  PropertyUpdatePayload,
+} from '~/types/models'
 import { useSupabaseBrowserClient } from '~/lib/supabase/client'
 
 const withTimeout = async <T>(promiseFactory: (signal: AbortSignal) => Promise<T>, timeout = 8000) => {
@@ -25,11 +31,17 @@ const createPublicHeaders = () => {
 }
 
 export const propertyRepository = {
-  async fetchList(params: { keyword?: string; completionFilter?: PropertyListFilter }) {
+  async fetchList(params: {
+    keyword?: string
+    completionFilter?: PropertyListFilter
+    page: number
+    pageSize: PropertyListPageSize
+  }): Promise<PropertyListResult> {
+    const from = (params.page - 1) * params.pageSize
+    const to = from + params.pageSize - 1
     const query = new URLSearchParams({
       select: 'id,scheme_name,postal_code,completed_year,is_data_complete,updated_at',
       order: 'updated_at.desc',
-      limit: '100',
     })
 
     if (params.keyword) {
@@ -47,14 +59,32 @@ export const propertyRepository = {
     const { baseUrl, headers } = createPublicHeaders()
 
     return await withTimeout(async (signal) => {
-      return await $fetch<PropertyListItem[]>(
+      const response = await fetch(
         `${baseUrl}/rest/v1/properties?${query.toString()}`,
         {
-          headers,
+          method: 'GET',
+          headers: {
+            ...headers,
+            Prefer: 'count=exact',
+            Range: `${from}-${to}`,
+          },
           signal,
           cache: 'no-store',
         },
       )
+
+      if (!response.ok) {
+        throw new Error('物件一覧の取得に失敗しました。')
+      }
+
+      const data = await response.json()
+      const contentRange = response.headers.get('content-range')
+      const totalCount = contentRange ? Number(contentRange.split('/')[1] ?? 0) : data.length
+
+      return {
+        items: data,
+        totalCount,
+      }
     })
   },
 

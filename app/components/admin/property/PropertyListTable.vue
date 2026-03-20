@@ -2,7 +2,7 @@
   <div class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
     <div class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3">
       <p class="text-sm font-medium text-slate-600">物件一覧</p>
-      <p class="text-sm text-slate-500">{{ items.length }} 件</p>
+      <p class="text-sm text-slate-500">{{ totalCount }} 件</p>
     </div>
     <table v-if="items.length > 0" class="min-w-full divide-y divide-slate-200 text-sm">
       <thead class="bg-slate-50">
@@ -53,6 +53,29 @@
     <div v-else class="px-4 py-10 text-center text-sm text-red-600">
       {{ errorMessage }}
     </div>
+    <div class="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-4 py-3">
+      <p class="text-sm text-slate-500">
+        {{ totalCount > 0 ? `${page} / ${totalPages} ページ` : '0 / 1 ページ' }}
+      </p>
+      <div class="flex items-center gap-2">
+        <button
+          class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+          type="button"
+          :disabled="!canGoPrev || isLoading"
+          @click="$emit('prevPage')"
+        >
+          前へ
+        </button>
+        <button
+          class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+          type="button"
+          :disabled="!canGoNext || isLoading"
+          @click="$emit('nextPage')"
+        >
+          次へ
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -61,8 +84,18 @@ import type { PropertyListItem } from '~/types/models'
 
 defineProps<{
   items: PropertyListItem[]
+  page: number
+  totalCount: number
+  totalPages: number
+  canGoPrev: boolean
+  canGoNext: boolean
   isLoading: boolean
   errorMessage: string
+}>()
+
+defineEmits<{
+  prevPage: []
+  nextPage: []
 }>()
 
 const formatUpdatedAt = (value: string) => {

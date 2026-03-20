@@ -32,6 +32,13 @@ export type PropertyListItem = {
   updated_at: string
 }
 
+export type PropertyListPageSize = 20 | 50 | 100
+
+export type PropertyListResult = {
+  items: PropertyListItem[]
+  totalCount: number
+}
+
 export type PropertyUpdatePayload = {
   postal_code: string | null
   completed_year: number | null
