@@ -5,6 +5,7 @@ import {
   normalizeTransactions,
   parseTsv,
 } from '../_shared/import-parser.ts'
+import { persistImport } from '../_shared/import-persistence.ts'
 import type { ImportPayload } from '../_shared/import-types.ts'
 
 const badRequest = (message: string) => {
@@ -52,12 +53,24 @@ Deno.serve(async (request) => {
     const decoded = decodeTransactionFile(payload.contentBase64)
     const rawRows = parseTsv(decoded)
     const { normalizedRows, skipped } = normalizeTransactions(rawRows, payload.fileName)
-    const preview = buildImportPreview(payload, normalizedRows, skipped)
+    const isDryRun = payload.dryRun ?? true
+    const preview = isDryRun
+      ? buildImportPreview(payload, normalizedRows, skipped)
+      : await persistImport(
+          {
+            ...payload,
+            dryRun: false,
+          },
+          normalizedRows,
+          skipped,
+        )
 
     return new Response(
       JSON.stringify({
-        status: 'dry_run_completed',
-        message: 'Import foundation is ready. Persistence and geocoding will be wired in the next step.',
+        status: isDryRun ? 'dry_run_completed' : 'import_completed',
+        message: isDryRun
+          ? 'Dry run completed.'
+          : 'Import completed. Properties and transactions have been persisted.',
         ...preview,
       }),
       {

@@ -94,6 +94,11 @@ const parseTransactionMonth = (value: string | undefined) => {
   }
 
   const normalized = trimmed.replace(/[./]/g, '-')
+  const japaneseYearMonth = trimmed.match(/^(\d{4})年\s*(\d{1,2})月$/)
+  if (japaneseYearMonth) {
+    return `${japaneseYearMonth[1]}-${japaneseYearMonth[2].padStart(2, '0')}-01`
+  }
+
   const yearMonth = normalized.match(/^(\d{4})-(\d{1,2})$/)
   if (yearMonth) {
     return `${yearMonth[1]}-${yearMonth[2].padStart(2, '0')}-01`
@@ -198,6 +203,9 @@ export const normalizeTransactions = (
 
     const schemeName = row[SCHEME_NAME_HEADER]?.trim()
     const transactionPrice = parseNumber(row[TRANSACTION_PRICE_HEADER])
+    const district = row[DISTRICT_HEADER]?.trim()
+    const transactionMonth = parseTransactionMonth(row[TRANSACTION_DATE_HEADER])
+
     if (!schemeName) {
       skipped.push({ rowNumber, reason: 'scheme_name_missing' })
       return
@@ -208,6 +216,16 @@ export const normalizeTransactions = (
       return
     }
 
+    if (!district) {
+      skipped.push({ rowNumber, reason: 'district_missing' })
+      return
+    }
+
+    if (!transactionMonth) {
+      skipped.push({ rowNumber, reason: 'transaction_month_invalid' })
+      return
+    }
+
     const landArea = splitAreaValue(row[LAND_AREA_HEADER])
     const floorArea = splitAreaValue(row[MAIN_FLOOR_AREA_HEADER])
 
@@ -215,7 +233,7 @@ export const normalizeTransactions = (
       propertyType,
       schemeName,
       roadName: row[ROAD_NAME_HEADER]?.trim() || null,
-      district: row[DISTRICT_HEADER]?.trim() || null,
+      district,
       mukim: row[MUKIM_HEADER]?.trim() || null,
       tenure: row[TENURE_HEADER]?.trim() || null,
       landArea: landArea.amount,
@@ -224,7 +242,7 @@ export const normalizeTransactions = (
       floorAreaUnit: floorArea.unit,
       unitLevel: parseUnitLevel(row[UNIT_LEVEL_HEADER]),
       transactionPrice,
-      transactionMonth: parseTransactionMonth(row[TRANSACTION_DATE_HEADER]),
+      transactionMonth,
       sourceFileName,
     })
   })
