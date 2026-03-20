@@ -1,6 +1,6 @@
 <template lang="pug">
 form.space-y-6
-  div.grid.gap-6.lg:grid-cols-2
+  div.grid.gap-6(class="lg:grid-cols-2")
     div.rounded-2xl.bg-white.p-6.shadow-sm.ring-1.ring-slate-200
       h2.text-lg.font-semibold.text-slate-900 基本情報
       div.mt-5.space-y-4

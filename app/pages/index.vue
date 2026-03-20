@@ -1,7 +1,7 @@
 <template lang="pug">
 section.mx-auto.max-w-5xl.px-6.py-16
   div.rounded-3xl.bg-white.p-10.shadow-sm.ring-1.ring-slate-200
-    p.text-sm.font-semibold.uppercase.tracking-[0.2em].text-teal-700 Malaysia Property Map
+    p.text-sm.font-semibold.uppercase.text-teal-700(style="letter-spacing: 0.2em;") Malaysia Property Map
     h1.mt-4.text-4xl.font-semibold.text-slate-900 {{ t('page.homeTitle') }}
     p.mt-4.max-w-2xl.text-base.leading-7.text-slate-600 {{ t('page.homeLead') }}
     div.mt-8.flex.flex-wrap.gap-4

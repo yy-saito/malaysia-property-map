@@ -4,8 +4,8 @@ div.min-h-screen.bg-slate-50
     div.mx-auto.flex.max-w-7xl.items-center.justify-between.px-6.py-4
       NuxtLink.text-lg.font-semibold.text-slate-900(to="/") {{ t('app.name') }}
       nav.flex.items-center.gap-6.text-sm.text-slate-600
-        NuxtLink.hover:text-slate-900(to="/souba") {{ t('nav.publicMap') }}
-        NuxtLink.hover:text-slate-900(to="/admin") {{ t('nav.admin') }}
+        NuxtLink(class="hover:text-slate-900" to="/souba") {{ t('nav.publicMap') }}
+        NuxtLink(class="hover:text-slate-900" to="/admin") {{ t('nav.admin') }}
   main
     slot
 </template>

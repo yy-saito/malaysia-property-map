@@ -1,6 +1,6 @@
 <template lang="pug">
 div
-  p.text-xs.font-semibold.uppercase.tracking-[0.24em].text-teal-700 相場マップ
+  p.text-xs.font-semibold.uppercase.text-teal-700(style="letter-spacing: 0.24em;") 相場マップ
   h1.mt-3.text-2xl.font-semibold.text-slate-900 マレーシアのコンド相場
   p.mt-3.text-sm.leading-6.text-slate-600 州と郵便番号エリアを切り替えながら、相場帯と取引状況を直感的に確認します。
   div.mt-6.space-y-4

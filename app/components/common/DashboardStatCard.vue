@@ -8,7 +8,7 @@ div.rounded-2xl.bg-white.p-6.shadow-sm.ring-1.ring-slate-200
 <script setup lang="ts">
 defineProps<{
   title: string
-  value: string
+  value: string | number
   description: string
 }>()
 </script>
