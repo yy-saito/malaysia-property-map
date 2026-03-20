@@ -1,0 +1,19 @@
+{
+  "app": {
+    "name": "Malaysia Property Map"
+  },
+  "nav": {
+    "publicMap": "相場マップ",
+    "admin": "管理画面",
+    "properties": "物件管理",
+    "imports": "CSV取り込み",
+    "admins": "管理者",
+    "members": "メンバー"
+  },
+  "page": {
+    "homeTitle": "マレーシア不動産マップ",
+    "homeLead": "公開相場画面と管理画面の基盤を先に整えています。",
+    "soubaTitle": "相場マップ",
+    "adminTitle": "管理画面"
+  }
+}

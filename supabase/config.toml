@@ -1,0 +1,29 @@
+project_id = "malaysia-property-map"
+
+[api]
+enabled = true
+port = 55321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 55322
+shadow_port = 55320
+major_version = 17
+
+[studio]
+enabled = true
+port = 55323
+
+[inbucket]
+enabled = true
+port = 55324
+
+[analytics]
+enabled = true
+port = 55327
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
