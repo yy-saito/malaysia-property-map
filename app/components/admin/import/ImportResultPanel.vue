@@ -57,6 +57,8 @@ div.rounded-2xl.bg-white.p-6.shadow-sm.ring-1.ring-slate-200(v-else)
 </template>
 
 <script setup lang="ts">
+import DashboardStatCard from '~/components/common/DashboardStatCard.vue'
+
 const route = useRoute()
 const { getPreview } = useImport()
 

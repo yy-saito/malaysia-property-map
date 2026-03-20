@@ -3,3 +3,8 @@ AdminPageShell(title="取り込み結果" description="取り込み件数と不�
   template(#default)
     ImportResultPanel
 </template>
+
+<script setup lang="ts">
+import AdminPageShell from '~/components/common/AdminPageShell.vue'
+import ImportResultPanel from '~/components/admin/import/ImportResultPanel.vue'
+</script>

@@ -3,3 +3,8 @@ AdminPageShell(title="メンバー管理" description="member / premium ユー�
   template(#default)
     UserListCard(title="メンバー一覧")
 </template>
+
+<script setup lang="ts">
+import AdminPageShell from '~/components/common/AdminPageShell.vue'
+import UserListCard from '~/components/common/UserListCard.vue'
+</script>

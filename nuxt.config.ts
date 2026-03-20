@@ -3,6 +3,12 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
   modules: ['@nuxtjs/i18n'],
+  components: [
+    {
+      path: './app/components',
+      pathPrefix: false,
+    },
+  ],
   css: ['./app/assets/css/main.css'],
   postcss: {
     plugins: {

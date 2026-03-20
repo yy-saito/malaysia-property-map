@@ -7,6 +7,10 @@ NuxtLayout(:name="layoutName")
 const route = useRoute()
 
 const layoutName = computed(() => {
+  if (route.path === '/admin/login') {
+    return 'default'
+  }
+
   return route.path.startsWith('/admin') ? 'admin' : 'default'
 })
 </script>

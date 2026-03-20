@@ -27,7 +27,12 @@ const parseNumber = (value: string | undefined) => {
     return null
   }
 
-  const normalized = value.replace(/,/g, '').trim()
+  const normalized = value
+    .replace(/,/g, '')
+    .replace(/RM/gi, '')
+    .replace(/[^\d.-]/g, '')
+    .trim()
+
   if (!normalized) {
     return null
   }

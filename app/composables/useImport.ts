@@ -9,6 +9,7 @@ type StoredImportPreview = ImportPreviewResponse & {
 const STORAGE_KEY = 'admin-import-previews'
 
 export const useImport = () => {
+  const { user } = useAuthUser()
   const isUploading = ref(false)
   const previews = useState<Record<string, StoredImportPreview>>('import-previews', () => ({}))
   const isClient = typeof window !== 'undefined'
@@ -39,10 +40,14 @@ export const useImport = () => {
   }
 
   const startDryRun = async (file: File) => {
+    if (!user.value?.id) {
+      throw new Error('管理者としてログインしてください。')
+    }
+
     isUploading.value = true
 
     try {
-      const result = await importRepository.startImport(file)
+      const result = await importRepository.startImport(file, user.value.id)
       const id = crypto.randomUUID()
 
       previews.value[id] = {
