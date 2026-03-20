@@ -88,6 +88,19 @@ docs/
 - `lib/` は Supabase 接続や純粋ユーティリティを置く
 - `types/` は API / DB モデルの型を置く
 
+## Nuxt 4.1.3 実装注意
+
+- `@nuxtjs/tailwindcss` は使わない
+- Tailwind は `tailwindcss + postcss + autoprefixer` の標準構成で使う
+- `nuxt.config.ts` の `css` は `./app/assets/...` を指定する
+- グローバル CSS は `app/assets/css/` 配下に置く
+- locale ファイルは `i18n/locales/` 配下に置く
+- `@nuxtjs/i18n` の `langDir` は `locales` のまま使い、実体は `i18n/locales/` に配置する
+- `i18n.bundle.optimizeTranslationDirective` は `false` を明示する
+- `postcss.config.*` は使わず、`nuxt.config.ts` の `postcss` に寄せる
+- `pnpm dev` は `--host 127.0.0.1 --port 3100` を基本とする
+- `import.meta.client` / `import.meta.server` は初期フェーズでは避け、必要なら `typeof window !== 'undefined'` などの安全な判定を使う
+
 ## コンポーネント設計ルール
 
 - 1 コンポーネント 1 役割を原則とする
@@ -142,12 +155,19 @@ docs/
 - 色や余白の繰り返しが増えたら共通クラス化する
 - 公開画面は参考サイトの密度感・視線誘導を意識する
 - 管理画面はシンプルで情報優先
+- Tailwind の arbitrary value を使う場合は、Pug との相性を確認する
+- 迷う場合は arbitrary value ではなく通常クラスか `style` 属性へ逃がす
 
 ## Pug 利用ルール
 
 - ページと大きめコンポーネントで利用してよい
 - ネストを深くしすぎない
 - 条件分岐が複雑になる場合は script 側へ寄せる
+- `.class` 形式で `:` を含む Tailwind クラスを書かない
+- `.class` 形式で `[]` を含む Tailwind arbitrary value を書かない
+- `hover:*` `lg:*` `sm:*` `disabled:*` `xl:*` などは `class="..."` 形式で書く
+- `tracking-[0.2em]` や `max-w-[180px]` のような arbitrary value は、Pug では `style=""` か通常クラスへ置き換える
+- グラデーションや複雑な background は、Pug のクラス記法に押し込まず `style=""` で書く
 
 ## データ取得ルール
 
@@ -189,3 +209,4 @@ docs/
 - `is_data_complete` は `scheme_name` と `postal_code` が揃ったら true
 - `completed_year` は物件マスターに持つ
 - `unit_level` は取引データ側に持つ
+- 起動エラーが出たら、まず `Nuxt 4.1.3` 固有の `Pug class 記法`、`CSS 配置`、`i18n locale 配置` を疑う
