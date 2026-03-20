@@ -20,6 +20,31 @@
           <DashboardStatCard title="スキップ" :value="preview.summary.skippedRows" description="対象外または不正" />
           <DashboardStatCard title="新規物件候補" :value="preview.summary.newProperties" description="scheme_name 単位" />
         </div>
+        <div class="mt-6 flex flex-wrap items-center gap-3">
+          <button
+            v-if="preview.summary.dryRun"
+            class="rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-slate-400"
+            type="button"
+            :disabled="!canImport || isImporting"
+            @click="handleExecuteImport"
+          >
+            {{ isImporting ? '本取り込み実行中...' : '本取り込みを実行' }}
+          </button>
+          <p
+            v-if="preview.summary.dryRun && !canImport"
+            class="text-sm text-amber-700"
+          >
+            結果再表示のみのため本取り込みは実行できません。取り込み画面から再度 dry-run を行ってください。
+          </p>
+          <p
+            v-if="!preview.summary.dryRun"
+            class="text-sm font-medium text-emerald-700"
+          >
+            本取り込みは完了しています。
+          </p>
+        </div>
+        <p v-if="actionMessage" class="mt-3 text-sm text-emerald-700">{{ actionMessage }}</p>
+        <p v-if="errorMessage" class="mt-3 text-sm text-red-600">{{ errorMessage }}</p>
       </div>
       <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
         <h2 class="text-lg font-semibold text-slate-900">不足情報</h2>
@@ -99,14 +124,44 @@
 import DashboardStatCard from '~/components/common/DashboardStatCard.vue'
 
 const route = useRoute()
-const { getPreview } = useImport()
+const { getPreview, canExecuteImport, executeImport, isImporting } = useImport()
+const errorMessage = ref('')
+const actionMessage = ref('')
+
+const previewId = computed(() => {
+  const id = Array.isArray(route.params.id) ? route.params.id[0] : route.params.id
+  return id ?? ''
+})
 
 const preview = computed(() => {
-  const id = Array.isArray(route.params.id) ? route.params.id[0] : route.params.id
-  if (!id) {
+  if (!previewId.value) {
     return null
   }
 
-  return getPreview(id)
+  return getPreview(previewId.value)
 })
+
+const canImport = computed(() => {
+  if (!previewId.value || !preview.value?.summary.dryRun) {
+    return false
+  }
+
+  return canExecuteImport(previewId.value)
+})
+
+const handleExecuteImport = async () => {
+  if (!previewId.value) {
+    return
+  }
+
+  errorMessage.value = ''
+  actionMessage.value = ''
+
+  try {
+    await executeImport(previewId.value)
+    actionMessage.value = '本取り込みを実行しました。物件管理画面で反映内容を確認できます。'
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '本取り込みの実行に失敗しました。'
+  }
+}
 </script>

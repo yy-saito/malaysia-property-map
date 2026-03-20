@@ -1,5 +1,5 @@
-<template lang="pug">
-SoubaMapLayout
+<template>
+  <SoubaMapLayout />
 </template>
 
 <script setup lang="ts">

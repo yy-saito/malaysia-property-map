@@ -44,3 +44,26 @@ export type AdminDashboardStats = {
   latestImportLabel: string
   adminCount: number
 }
+
+export type SoubaAreaLevel = 'state' | 'postal_code_area'
+
+export type SoubaPriceBand = 'all' | 'low' | 'mid' | 'high'
+
+export type SoubaAreaStat = {
+  id: string
+  name: string
+  areaLevel: SoubaAreaLevel
+  stateName: string | null
+  postalCode: string | null
+  latitude: number | null
+  longitude: number | null
+  transactionCount: number
+  averagePrice: number
+  averageFloorArea: number | null
+}
+
+export type SoubaSummary = {
+  areaCount: number
+  transactionCount: number
+  averagePrice: number
+}

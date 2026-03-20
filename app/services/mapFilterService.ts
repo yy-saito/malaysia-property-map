@@ -1,5 +1,11 @@
+import type { SoubaAreaLevel, SoubaPriceBand } from '~/types/models'
+
 export const mapFilterService = {
-  normalizeAreaLevel(areaLevel: 'state' | 'postal_code_area') {
+  normalizeAreaLevel(areaLevel: SoubaAreaLevel) {
     return areaLevel
+  },
+
+  normalizePriceBand(priceBand: SoubaPriceBand) {
+    return priceBand
   },
 }

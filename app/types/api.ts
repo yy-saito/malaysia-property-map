@@ -35,3 +35,17 @@ export type ImportPreviewResponse = {
   properties: ImportPropertyPreview[]
   skipped: ImportSkippedRow[]
 }
+
+export type SoubaTransactionRow = {
+  transaction_price: number
+  floor_area: number | null
+  area: {
+    id: string
+    area_level: number
+    state_name: string | null
+    postal_code: string | null
+    display_name: string
+    latitude: number | null
+    longitude: number | null
+  } | null
+}
