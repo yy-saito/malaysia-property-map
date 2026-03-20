@@ -209,48 +209,41 @@
 
 ### 2.3 物件一覧取得
 
-- `GET /api/admin/properties`
+- `GET {SUPABASE_URL}/rest/v1/properties`
 - 用途: 管理画面の物件一覧表示
+- 実装方針: SPA から Supabase REST へ直接アクセスする
 
 #### 主なクエリ
 
 - `keyword`
-- `stateName`
-- `postalCode`
-- `propertyType`
-- `hasBuildingAge`
-- `page`
+- `completionFilter`
+- `limit`
 
 #### 想定レスポンス項目
 
 - 物件 ID
 - `schemeName`
-- `stateName`
 - `postalCode`
-- `propertyType`
-- `developerName`
-- `buildingAge`
+- `completedYear`
+- `isDataComplete`
 - `updatedAt`
 
 ### 2.4 物件詳細取得
 
-- `GET /api/admin/properties/:id`
+- `GET {SUPABASE_URL}/rest/v1/properties?id=eq.{id}`
 - 用途: 物件編集画面の初期表示
+- 実装方針: SPA から Supabase REST へ直接アクセスする
 
 ### 2.5 物件更新
 
-- `PATCH /api/admin/properties/:id`
+- `PATCH {SUPABASE_URL}/rest/v1/properties?id=eq.{id}`
 - 用途: 物件情報の手動補完・修正
+- 実装方針: SPA から Supabase REST へ直接更新する
 
 #### 更新対象項目
 
-- `schemeName`
-- `areaId`
-- `propertyTypeId`
-- `developerId`
-- `resolvedAddress`
 - `postalCode`
-- `buildingAge`
+- `completedYear`
 - `note`
 
 ### 2.6 管理者一覧取得

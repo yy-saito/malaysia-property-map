@@ -1,7 +1,8 @@
-import { propertyRepository } from '~/repositories/propertyRepository'
 import type { PropertyListFilter, PropertyListItem } from '~/types/models'
+import { propertyRepository } from '~/repositories/propertyRepository'
 
 export const useAdminProperties = () => {
+  const route = useRoute()
   const keyword = ref('')
   const completionFilter = ref<PropertyListFilter>('all')
   const items = ref<PropertyListItem[]>([])
@@ -28,6 +29,20 @@ export const useAdminProperties = () => {
   onMounted(async () => {
     await fetchProperties()
   })
+
+  onActivated(async () => {
+    await fetchProperties()
+  })
+
+  watch(
+    () => route.fullPath,
+    async (path) => {
+      if (path === '/admin/properties') {
+        await fetchProperties()
+      }
+    },
+    { immediate: true },
+  )
 
   return {
     keyword,

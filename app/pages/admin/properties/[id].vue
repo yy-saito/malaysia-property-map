@@ -1,7 +1,6 @@
-<template lang="pug">
-AdminPageShell(title="物件編集" description="completed_year、postal_code、note を編集します。")
-  template(#default)
-    PropertyEditForm(
+<template>
+  <AdminPageShell title="物件編集" description="completed_year、postal_code、note を編集します。">
+    <PropertyEditForm
       :form="form"
       :is-loading="isLoading"
       :is-saving="isSaving"
@@ -11,7 +10,8 @@ AdminPageShell(title="物件編集" description="completed_year、postal_code、
       @update:completed-year="form.completedYear = $event"
       @update:note="form.note = $event"
       @submit="handleSubmit"
-    )
+    />
+  </AdminPageShell>
 </template>
 
 <script setup lang="ts">

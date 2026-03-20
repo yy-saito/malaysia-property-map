@@ -1,33 +1,46 @@
-<template lang="pug">
-div.rounded-2xl.bg-white.p-6.shadow-sm.ring-1.ring-slate-200
-  h2.text-lg.font-semibold.text-slate-900 CSVアップロード
-  p.mt-2.text-sm.leading-6.text-slate-600 UTF-16LE / TSV を想定し、Condominium/Apartment のみ取り込みます。
-  div.mt-6.rounded-2xl.border-2.border-dashed.border-slate-300.bg-slate-50.p-8
-    div.flex.flex-col.gap-4.text-center
-      p.text-sm.text-slate-600 UTF-16LE / TSV ファイルを 1 件選択して dry-run を実行します。
-      input.hidden(
-        ref="fileInputRef"
-        type="file"
-        accept=".csv,.tsv,.txt"
-        @change="handleFileChange"
-      )
-      div.flex.flex-wrap.justify-center.gap-3
-        button.rounded-xl.border.border-slate-300.bg-white.px-5.py-3.text-sm.font-medium.text-slate-700(
-          type="button"
-          @click="openFileDialog"
-        ) ファイルを選択
-        button.rounded-xl.bg-slate-900.px-5.py-3.text-sm.font-medium.text-white(
-          class="disabled:cursor-not-allowed disabled:bg-slate-400"
-          type="button"
-          :disabled="!selectedFile || isUploading"
-          @click="submit"
-        ) {{ isUploading ? '処理中...' : 'dry-run 実行' }}
-      p.text-sm.font-medium.text-slate-700(v-if="selectedFile") {{ selectedFile.name }}
-      p.text-sm.text-red-600(v-if="errorMessage") {{ errorMessage }}
-  ul.mt-6.space-y-2.text-sm.leading-6.text-slate-600
-    li ・対象は `Condominium/Apartment` のみです
-    li ・住所解決と DB 永続化は次フェーズで接続します
-    li ・この段階では取り込み結果のプレビューを返します
+<template>
+  <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+    <h2 class="text-lg font-semibold text-slate-900">CSVアップロード</h2>
+    <p class="mt-2 text-sm leading-6 text-slate-600">
+      UTF-16LE / TSV を想定し、Condominium/Apartment のみ取り込みます。
+    </p>
+    <div class="mt-6 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-8">
+      <div class="flex flex-col gap-4 text-center">
+        <p class="text-sm text-slate-600">UTF-16LE / TSV ファイルを 1 件選択して dry-run を実行します。</p>
+        <input
+          ref="fileInputRef"
+          class="hidden"
+          type="file"
+          accept=".csv,.tsv,.txt"
+          @change="handleFileChange"
+        >
+        <div class="flex flex-wrap justify-center gap-3">
+          <button
+            class="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-medium text-slate-700"
+            type="button"
+            @click="openFileDialog"
+          >
+            ファイルを選択
+          </button>
+          <button
+            class="rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-slate-400"
+            type="button"
+            :disabled="!selectedFile || isUploading"
+            @click="submit"
+          >
+            {{ isUploading ? '処理中...' : 'dry-run 実行' }}
+          </button>
+        </div>
+        <p v-if="selectedFile" class="text-sm font-medium text-slate-700">{{ selectedFile.name }}</p>
+        <p v-if="errorMessage" class="text-sm text-red-600">{{ errorMessage }}</p>
+      </div>
+    </div>
+    <ul class="mt-6 space-y-2 text-sm leading-6 text-slate-600">
+      <li>・対象は `Condominium/Apartment` のみです</li>
+      <li>・住所解決と DB 永続化は次フェーズで接続します</li>
+      <li>・この段階では取り込み結果のプレビューを返します</li>
+    </ul>
+  </div>
 </template>
 
 <script setup lang="ts">

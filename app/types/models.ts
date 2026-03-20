@@ -37,3 +37,10 @@ export type PropertyUpdatePayload = {
   completed_year: number | null
   note: string | null
 }
+
+export type AdminDashboardStats = {
+  propertyCount: number
+  incompletePropertyCount: number
+  latestImportLabel: string
+  adminCount: number
+}

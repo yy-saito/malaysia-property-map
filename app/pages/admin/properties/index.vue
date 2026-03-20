@@ -1,18 +1,19 @@
-<template lang="pug">
-AdminPageShell(title="物件管理" description="物件マスターの検索と不足情報の確認を行います。")
-  template(#default)
-    PropertyListFilters(
+<template>
+  <AdminPageShell title="物件管理" description="物件マスターの検索と不足情報の確認を行います。">
+    <PropertyListFilters
       :keyword="keyword"
       :completion-filter="completionFilter"
       @update:keyword="keyword = $event"
       @update:completion-filter="completionFilter = $event"
       @search="fetchProperties"
-    )
-    PropertyListTable.mt-6(
+    />
+    <PropertyListTable
+      class="mt-6"
       :items="items"
       :is-loading="isLoading"
       :error-message="errorMessage"
-    )
+    />
+  </AdminPageShell>
 </template>
 
 <script setup lang="ts">

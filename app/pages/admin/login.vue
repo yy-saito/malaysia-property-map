@@ -1,37 +1,50 @@
-<template lang="pug">
-section.flex.min-h-screen.items-center.justify-center.bg-slate-100.px-4.py-12
-  div.w-full.max-w-md.rounded-3xl.bg-white.p-8.shadow-sm.ring-1.ring-slate-200
-    div
-      p.text-sm.font-medium.text-slate-500 管理画面ログイン
-      h1.mt-2.text-2xl.font-semibold.text-slate-900 Malaysia Property Map
-      p.mt-3.text-sm.leading-6.text-slate-600 管理画面は管理者アカウントのみアクセスできます。
-    form.mt-8.space-y-5(@submit.prevent="submit")
-      div.space-y-2
-        label.text-sm.font-medium.text-slate-700(for="email") メールアドレス
-        input#email.w-full.rounded-2xl.border.border-slate-300.px-4.py-3.text-sm.text-slate-900(
-          v-model="email"
-          type="email"
-          autocomplete="email"
-          placeholder="yusei.yusry@gmail.com"
-        )
-      div.space-y-2
-        label.text-sm.font-medium.text-slate-700(for="password") パスワード
-        input#password.w-full.rounded-2xl.border.border-slate-300.px-4.py-3.text-sm.text-slate-900(
-          v-model="password"
-          type="password"
-          autocomplete="current-password"
-          placeholder="Test@12345"
-        )
-      p.text-sm.text-red-600(v-if="errorMessage") {{ errorMessage }}
-      button.w-full.rounded-2xl.bg-slate-900.px-5.py-3.text-sm.font-medium.text-white(
-        class="disabled:cursor-not-allowed disabled:bg-slate-400"
-        type="submit"
-        :disabled="isLoading"
-      ) {{ isLoading ? 'ログイン中...' : 'ログイン' }}
-    div.mt-6.rounded-2xl.bg-slate-50.p-4.text-xs.leading-6.text-slate-500
-      p 開発用アカウント
-      p メール: yusei.yusry@gmail.com
-      p パスワード: Test@12345
+<template>
+  <section class="flex min-h-screen items-center justify-center bg-slate-100 px-4 py-12">
+    <div class="w-full max-w-md rounded-3xl bg-white p-8 shadow-sm ring-1 ring-slate-200">
+      <div>
+        <p class="text-sm font-medium text-slate-500">管理画面ログイン</p>
+        <h1 class="mt-2 text-2xl font-semibold text-slate-900">Malaysia Property Map</h1>
+        <p class="mt-3 text-sm leading-6 text-slate-600">管理画面は管理者アカウントのみアクセスできます。</p>
+      </div>
+      <form class="mt-8 space-y-5" @submit.prevent="submit">
+        <div class="space-y-2">
+          <label class="text-sm font-medium text-slate-700" for="email">メールアドレス</label>
+          <input
+            id="email"
+            v-model="email"
+            class="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-900"
+            type="email"
+            autocomplete="email"
+            placeholder="yusei.yusry@gmail.com"
+          >
+        </div>
+        <div class="space-y-2">
+          <label class="text-sm font-medium text-slate-700" for="password">パスワード</label>
+          <input
+            id="password"
+            v-model="password"
+            class="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-900"
+            type="password"
+            autocomplete="current-password"
+            placeholder="Test@12345"
+          >
+        </div>
+        <p v-if="errorMessage" class="text-sm text-red-600">{{ errorMessage }}</p>
+        <button
+          class="w-full rounded-2xl bg-slate-900 px-5 py-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-slate-400"
+          type="submit"
+          :disabled="isLoading"
+        >
+          {{ isLoading ? 'ログイン中...' : 'ログイン' }}
+        </button>
+      </form>
+      <div class="mt-6 rounded-2xl bg-slate-50 p-4 text-xs leading-6 text-slate-500">
+        <p>開発用アカウント</p>
+        <p>メール: yusei.yusry@gmail.com</p>
+        <p>パスワード: Test@12345</p>
+      </div>
+    </div>
+  </section>
 </template>
 
 <script setup lang="ts">

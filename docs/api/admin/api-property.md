@@ -2,7 +2,7 @@
 
 ## 概要
 
-物件一覧画面と物件編集画面で利用する API 群です。完成年や住所、物件ノートなど、CSV に含まれない補完情報の管理に利用します。
+物件一覧画面と物件編集画面で利用するデータアクセス仕様です。完成年や住所、物件ノートなど、CSV に含まれない補完情報の管理に利用します。初期実装では Nuxt 独自 API を挟まず、SPA から Supabase REST へ直接アクセスします。
 
 ---
 
@@ -10,9 +10,9 @@
 
 | メソッド | エンドポイント | 説明 | 使用者 | 認証 |
 | -------- | -------------- | ---- | ------ | ---- |
-| GET | /api/admin/properties | 物件一覧取得 | 管理者、物件情報一覧画面 | 不要 |
-| GET | /api/admin/properties/:id | 物件詳細取得 | 管理者、物件情報編集画面 | 不要 |
-| PATCH | /api/admin/properties/:id | 物件更新 | 管理者、物件情報編集画面 | 不要 |
+| GET | `{SUPABASE_URL}/rest/v1/properties` | 物件一覧取得 | 管理者、物件情報一覧画面 | 不要 |
+| GET | `{SUPABASE_URL}/rest/v1/properties?id=eq.{id}` | 物件詳細取得 | 管理者、物件情報編集画面 | 不要 |
+| PATCH | `{SUPABASE_URL}/rest/v1/properties?id=eq.{id}` | 物件更新 | 管理者、物件情報編集画面 | 必要 |
 
 ---
 
@@ -21,7 +21,7 @@
 ### エンドポイント
 
 ```http
-GET /api/admin/properties
+GET {SUPABASE_URL}/rest/v1/properties
 ```
 
 ### 説明
@@ -38,21 +38,16 @@ GET /api/admin/properties
 | パラメータ名 | 型 | 必須 | 説明 |
 | ------------ | -- | ---- | ---- |
 | keyword | string | 任意 | 物件名検索 |
-| stateName | string | 任意 | 州名 |
-| postalCode | string | 任意 | 郵便番号 |
-| propertyType | string | 任意 | 物件タイプ |
-| hasCompletedYear | boolean | 任意 | 完成年設定有無 |
-| page | integer | 任意 | ページ番号 |
+| completionFilter | enum(`all`,`complete`,`incomplete`) | 任意 | 補完状態 |
+| limit | integer | 任意 | 取得件数上限 |
 
 ### レスポンス項目
 
 - 物件 ID
 - `schemeName`
-- `stateName`
 - `postalCode`
-- `propertyType`
-- `developerName`
 - `completedYear`
+- `isDataComplete`
 - `updatedAt`
 
 ---
@@ -62,7 +57,7 @@ GET /api/admin/properties
 ### エンドポイント
 
 ```http
-GET /api/admin/properties/:id
+GET {SUPABASE_URL}/rest/v1/properties?id=eq.{id}
 ```
 
 ### 説明
@@ -81,7 +76,7 @@ GET /api/admin/properties/:id
 ### エンドポイント
 
 ```http
-PATCH /api/admin/properties/:id
+PATCH {SUPABASE_URL}/rest/v1/properties?id=eq.{id}
 ```
 
 ### 説明
@@ -97,11 +92,12 @@ PATCH /api/admin/properties/:id
 
 | パラメータ名 | 型 | 必須 | 説明 |
 | ------------ | -- | ---- | ---- |
-| schemeName | string | 必須 | 物件名 |
-| areaId | uuid | 必須 | エリア ID |
-| propertyTypeId | uuid | 必須 | 物件タイプ ID |
-| developerId | uuid | 任意 | developer ID |
-| resolvedAddress | string | 任意 | 解決済み住所 |
 | postalCode | string | 任意 | 郵便番号 |
 | completedYear | integer | 任意 | 完成年 |
 | note | string | 任意 | 補足説明 |
+
+### 補足
+
+- 一覧取得・詳細取得は `apikey + anon key` で参照する
+- 更新はログイン済み管理者の `access_token` を `Authorization` に付与して実行する
+- 実装上の呼び出しは [`propertyRepository.ts`](/Users/yys/Work/Mypro-capital/malaysia-property-map/app/repositories/propertyRepository.ts) に集約する

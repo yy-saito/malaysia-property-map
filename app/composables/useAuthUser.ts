@@ -28,10 +28,15 @@ export const useAuthUser = () => {
       return null
     }
 
-    const profile = await userRepository.fetchCurrentUserByAuthId(nextSession.user.id)
-    user.value = profile
+    try {
+      const profile = await userRepository.fetchCurrentUserByAuthId(nextSession.user.id)
+      user.value = profile
 
-    return profile
+      return profile
+    } catch {
+      user.value = null
+      return null
+    }
   }
 
   const initialize = async () => {

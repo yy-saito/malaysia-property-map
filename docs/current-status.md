@@ -77,17 +77,17 @@
   - ベースレイアウト実装済み
   - 地図 / フィルタ / サマリー / 一覧のダミー UI 実装済み
 - `/admin`
-  - ダッシュボードのベース UI 実装済み
+  - ダッシュボードの実データ表示を実装済み
 - `/admin/import`
   - CSV dry-run 実行 UI 実装済み
 - `/admin/import/result/[id]`
   - dry-run 結果表示 UI 実装済み
 - `/admin/properties`
   - 物件一覧画面の UI 実装済み
-  - Supabase 参照処理を実装済み
+  - Supabase 直結の参照処理を実装済み
 - `/admin/properties/[id]`
   - 物件編集フォームの UI 実装済み
-  - 実データ取得・保存実装済み
+  - Supabase 直結の実データ取得・保存実装済み
 - `/admin/admins`
   - 一覧プレースホルダ実装済み
 - `/admin/members`
@@ -105,8 +105,9 @@
 
 ### 管理画面
 
-- ダッシュボード数値はまだ固定値
-- 物件一覧は取得処理まで実装済みだが、検索条件や表示内容の詰めは未完
+- ダッシュボードは Supabase 直結で実データ表示済み
+- 物件一覧は Supabase 直結へ寄せ直し中
+- 管理画面テンプレートの `Pug` 廃止を開始済み
 - 管理者一覧 / メンバー一覧はプレースホルダのまま
 
 ### 公開画面
@@ -130,6 +131,15 @@
   - `tracking-[...]`
   - `bg-[...]`
   などを `class=""` または `style=""` に修正
+- 管理画面の取得不安定
+  - 一部の Nuxt server API 依存をやめ、SPA から Supabase 直結へ再統一中
+  - `auth` 初期化の待ち方を軽量化
+  - 管理画面テンプレートを標準 Vue テンプレートへ移行中
+- ダッシュボード実データ化
+  - `properties`
+  - `imports`
+  - `users`
+  を Supabase REST 直結で集計する repository / composable を追加
 - `import.meta.client` 使用箇所を安全なランタイム判定へ変更
 - `import-transactions` の `401 Unauthorized`
   - ローカル開発用に `supabase/config.toml` で `verify_jwt = false` を設定
@@ -146,11 +156,10 @@
 
 ## 次にやること
 
-1. 管理画面ダッシュボードの数値を実データ化する
-2. `souba` 公開画面を実データに接続する
-3. dry-run 結果画面から本 import 実行へ進める UI を追加する
-4. Nominatim の再試行・キャッシュ戦略を追加する
-5. 管理者一覧 / メンバー一覧を実データ接続する
+1. `souba` 公開画面を実データに接続する
+2. dry-run 結果画面から本 import 実行へ進める UI を追加する
+3. Nominatim の再試行・キャッシュ戦略を追加する
+4. 管理者一覧 / メンバー一覧を実データ接続する
 
 ## 現在のローカル前提
 

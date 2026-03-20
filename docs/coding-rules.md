@@ -84,7 +84,7 @@ docs/
 - `pages/` は画面単位
 - `components/` は再利用 UI 単位
 - `composables/` は画面ロジック、状態、イベント制御をまとめる
-- `repositories/` は API / Supabase アクセスをまとめる
+- `repositories/` は Supabase / Edge Functions / RPC アクセスをまとめる
 - `services/` は業務ロジックやデータ整形をまとめる
 - `lib/` は Supabase 接続や純粋ユーティリティを置く
 - `types/` は API / DB モデルの型を置く
@@ -156,27 +156,25 @@ docs/
 - 色や余白の繰り返しが増えたら共通クラス化する
 - 公開画面は参考サイトの密度感・視線誘導を意識する
 - 管理画面はシンプルで情報優先
-- Tailwind の arbitrary value を使う場合は、Pug との相性を確認する
+- Tailwind の arbitrary value を使う場合は、標準 Vue テンプレート内で `class=""` に書く
 - 迷う場合は arbitrary value ではなく通常クラスか `style` 属性へ逃がす
 
-## Pug 利用ルール
+## テンプレートルール
 
-- ページと大きめコンポーネントで利用してよい
-- ネストを深くしすぎない
-- 条件分岐が複雑になる場合は script 側へ寄せる
-- `.class` 形式で `:` を含む Tailwind クラスを書かない
-- `.class` 形式で `[]` を含む Tailwind arbitrary value を書かない
-- `hover:*` `lg:*` `sm:*` `disabled:*` `xl:*` などは `class="..."` 形式で書く
-- `tracking-[0.2em]` や `max-w-[180px]` のような arbitrary value は、Pug では `style=""` か通常クラスへ置き換える
-- グラデーションや複雑な background は、Pug のクラス記法に押し込まず `style=""` で書く
+- 新規実装では `Pug` を使わない
+- `.vue` の `template` は標準 Vue テンプレートで統一する
+- 既存の `Pug` ファイルは、触るタイミングで順次標準テンプレートへ移行する
+- テンプレート内に TypeScript キャストを書かない
+- 複雑な入力処理は `script setup` 側のハンドラへ逃がす
 
 ## データ取得ルール
 
-- フロントからの参照系は Supabase RPC / Edge Functions を利用する
-- 直接クエリしてよい範囲と Function を使う範囲を分ける
+- フロントからの参照系は Supabase REST / RPC / Edge Functions を利用する
+- 直接クエリしてよい範囲と Edge Functions を使う範囲を分ける
 - 重い処理や import は Edge Functions に寄せる
 - コンポーネントから直接 Supabase を呼ばない
 - データ取得は `repository` 経由に統一する
+- 管理画面の CRUD は、初期フェーズでは SPA から Supabase 直結を優先する
 
 ## 型ルール
 
@@ -210,4 +208,4 @@ docs/
 - `is_data_complete` は `scheme_name` と `postal_code` が揃ったら true
 - `completed_year` は物件マスターに持つ
 - `unit_level` は取引データ側に持つ
-- 起動エラーが出たら、まず `Nuxt 4.1.3` 固有の `Pug class 記法`、`CSS 配置`、`i18n locale 配置` を疑う
+- 起動エラーが出たら、まず `Nuxt 4.1.3` 固有の `CSS 配置`、`i18n locale 配置`、テンプレート構文エラーを疑う

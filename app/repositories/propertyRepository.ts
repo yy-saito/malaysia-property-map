@@ -1,65 +1,121 @@
 import type { Property, PropertyListFilter, PropertyListItem, PropertyUpdatePayload } from '~/types/models'
 import { useSupabaseBrowserClient } from '~/lib/supabase/client'
 
+const withTimeout = async <T>(promiseFactory: (signal: AbortSignal) => Promise<T>, timeout = 8000) => {
+  const controller = new AbortController()
+  const timer = window.setTimeout(() => controller.abort(), timeout)
+
+  try {
+    return await promiseFactory(controller.signal)
+  } finally {
+    window.clearTimeout(timer)
+  }
+}
+
+const createPublicHeaders = () => {
+  const config = useRuntimeConfig()
+
+  return {
+    baseUrl: config.public.supabaseUrl,
+    headers: {
+      apikey: config.public.supabaseAnonKey,
+      Authorization: `Bearer ${config.public.supabaseAnonKey}`,
+    },
+  }
+}
+
 export const propertyRepository = {
   async fetchList(params: { keyword?: string; completionFilter?: PropertyListFilter }) {
-    const client = useSupabaseBrowserClient()
-
-    let query = client
-      .from('properties')
-      .select('id, scheme_name, postal_code, completed_year, is_data_complete, updated_at')
-      .order('updated_at', { ascending: false })
-      .limit(100)
+    const query = new URLSearchParams({
+      select: 'id,scheme_name,postal_code,completed_year,is_data_complete,updated_at',
+      order: 'updated_at.desc',
+      limit: '100',
+    })
 
     if (params.keyword) {
-      query = query.ilike('scheme_name', `%${params.keyword}%`)
+      query.set('scheme_name', `ilike.*${params.keyword}*`)
     }
 
     if (params.completionFilter === 'complete') {
-      query = query.eq('is_data_complete', true)
+      query.set('is_data_complete', 'eq.true')
     }
 
     if (params.completionFilter === 'incomplete') {
-      query = query.eq('is_data_complete', false)
+      query.set('is_data_complete', 'eq.false')
     }
 
-    const { data, error } = await query
+    const { baseUrl, headers } = createPublicHeaders()
 
-    if (error) {
-      throw error
-    }
-
-    return (data ?? []) as PropertyListItem[]
+    return await withTimeout(async (signal) => {
+      return await $fetch<PropertyListItem[]>(
+        `${baseUrl}/rest/v1/properties?${query.toString()}`,
+        {
+          headers,
+          signal,
+          cache: 'no-store',
+        },
+      )
+    })
   },
 
   async fetchById(id: string) {
-    const client = useSupabaseBrowserClient()
-    const { data, error } = await client
-      .from('properties')
-      .select('id, scheme_name, resolved_address, postal_code, tenure, completed_year, note, area_id, is_data_complete')
-      .eq('id', id)
-      .single()
+    const query = new URLSearchParams({
+      select: 'id,scheme_name,resolved_address,postal_code,tenure,completed_year,note,area_id,is_data_complete',
+      id: `eq.${id}`,
+    })
 
-    if (error) {
-      throw error
+    const { baseUrl, headers } = createPublicHeaders()
+
+    const data = await withTimeout(async (signal) => {
+      return await $fetch<Property[]>(
+        `${baseUrl}/rest/v1/properties?${query.toString()}`,
+        {
+          headers,
+          signal,
+          cache: 'no-store',
+        },
+      )
+    })
+
+    if (!data[0]) {
+      throw new Error('物件が見つかりません。')
     }
 
-    return data as Property
+    return data[0]
   },
 
   async update(id: string, payload: PropertyUpdatePayload) {
-    const client = useSupabaseBrowserClient()
-    const { data, error } = await client
-      .from('properties')
-      .update(payload)
-      .eq('id', id)
-      .select('id, scheme_name, resolved_address, postal_code, tenure, completed_year, note, area_id, is_data_complete')
-      .single()
+    const config = useRuntimeConfig()
+    const supabase = useSupabaseBrowserClient()
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
 
-    if (error) {
-      throw error
+    if (!session?.access_token) {
+      throw new Error('管理者としてログインしてください。')
     }
 
-    return data as Property
+    const data = await withTimeout(async (signal) => {
+      return await $fetch<Property[]>(
+        `${config.public.supabaseUrl}/rest/v1/properties?id=eq.${id}`,
+        {
+          method: 'PATCH',
+          body: payload,
+          signal,
+          cache: 'no-store',
+          headers: {
+            apikey: config.public.supabaseAnonKey,
+            Authorization: `Bearer ${session.access_token}`,
+            Prefer: 'return=representation',
+          },
+        },
+      )
+    })
+
+    if (!data[0]) {
+      throw new Error('物件更新結果を取得できませんでした。')
+    }
+
+    return data[0]
   },
 }
