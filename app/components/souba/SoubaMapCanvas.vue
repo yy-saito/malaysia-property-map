@@ -58,6 +58,7 @@ const emit = defineEmits<{
 const mapElement = ref<HTMLDivElement | null>(null)
 let map: LeafletMap | null = null
 let markerLayer: LayerGroup | null = null
+const markersByAreaId = new Map<string, CircleMarker>()
 
 const selectedAreaDescription = computed(() => {
   if (props.isLoading) {
@@ -65,10 +66,14 @@ const selectedAreaDescription = computed(() => {
   }
 
   if (!props.selectedArea) {
-    return '州または郵便番号エリアごとの取引データを読み込んだ後、ここに選択エリアの概要を表示します。'
+    return '州または駅エリアごとの取引データを読み込んだ後、ここに選択エリアの概要を表示します。'
   }
 
-  return `${props.selectedArea.transactionCount} 件の取引から算出した相場です。${props.selectedArea.postalCode ? `郵便番号 ${props.selectedArea.postalCode} を中心に集計しています。` : '州単位で集計しています。'}`
+  if (props.selectedArea.areaLevel === 'station_area') {
+    return `${props.selectedArea.transactionCount} 件の取引から算出した相場です。${props.selectedArea.stationName ? `${props.selectedArea.stationName} 駅圏として集計しています。` : '駅エリア単位で集計しています。'}`
+  }
+
+  return `${props.selectedArea.transactionCount} 件の取引から算出した相場です。州単位で集計しています。`
 })
 
 const formatPrice = (value: number) => {
@@ -83,6 +88,55 @@ const formatFloorArea = (value: number | null) => {
   }
 
   return `${new Intl.NumberFormat('en-MY', { maximumFractionDigits: 0 }).format(value)} sq ft`
+}
+
+const formatLandArea = (value: number | null, unit: string | null) => {
+  if (!value) {
+    return '-'
+  }
+
+  const formattedValue = new Intl.NumberFormat('en-MY', { maximumFractionDigits: 0 }).format(value)
+  return `${formattedValue} sq.m`
+}
+
+const formatTransactionMonth = (value: string) => {
+  return value.slice(0, 7)
+}
+
+const buildPopupHtml = (item: SoubaAreaStat) => {
+  const rows = item.transactions
+    .map((transaction) => `
+      <tr>
+        <td style="padding: 4px 6px; white-space: nowrap;">${formatTransactionMonth(transaction.transactionMonth)}</td>
+        <td style="padding: 4px 6px; min-width: 120px;">${transaction.schemeName}</td>
+        <td style="padding: 4px 6px; white-space: nowrap;">${formatLandArea(transaction.landArea, transaction.landAreaUnit)}</td>
+        <td style="padding: 4px 6px; white-space: nowrap;">${transaction.unitLevel ? `${transaction.unitLevel}階` : '-'}</td>
+        <td style="padding: 4px 6px; white-space: nowrap; font-weight: 700;">RM ${formatPrice(transaction.transactionPrice)}</td>
+      </tr>
+    `)
+    .join('')
+
+  return `
+    <div style="width: max-content; max-width: 920px;">
+      <div style="font-weight: 800; font-size: 16px; margin-bottom: 4px;">${item.name}</div>
+      <div style="font-size: 13px; color: #475569; margin-bottom: 2px;">平均価格: RM ${formatPrice(item.averagePrice)}</div>
+      <div style="font-size: 13px; color: #475569; margin-bottom: 10px;">取引件数: ${item.transactionCount} 件</div>
+      <div style="max-height: 220px; overflow: auto; border-top: 1px solid #e2e8f0; padding-top: 8px;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px; color: #0f172a;">
+          <thead>
+            <tr style="text-align: left; color: #64748b;">
+              <th style="padding: 4px 6px;">取引年月</th>
+              <th style="padding: 4px 6px;">建物名</th>
+              <th style="padding: 4px 6px;">面積</th>
+              <th style="padding: 4px 6px;">階数</th>
+              <th style="padding: 4px 6px;">金額</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>
+  `
 }
 
 const getMarkerColor = (averagePrice: number) => {
@@ -101,10 +155,34 @@ const buildMarkerRadius = (transactionCount: number) => {
   return Math.min(24, Math.max(10, 8 + Math.log10(transactionCount + 1) * 6))
 }
 
+const getMarkerLabel = (item: SoubaAreaStat) => {
+  if (item.areaLevel === 'station_area') {
+    return item.stationName ?? item.stationAreaName ?? item.name
+  }
+
+  return item.name
+}
+
 const clearMarkers = () => {
   if (markerLayer) {
     markerLayer.clearLayers()
   }
+  markersByAreaId.clear()
+}
+
+const updateSelectedMarker = () => {
+  markersByAreaId.forEach((marker, areaId) => {
+    const isSelected = props.selectedArea?.id === areaId
+
+    marker.setStyle({
+      weight: isSelected ? 3 : 1.5,
+      fillOpacity: isSelected ? 0.95 : 0.78,
+    })
+
+    if (isSelected) {
+      marker.openPopup()
+    }
+  })
 }
 
 const renderMarkers = async () => {
@@ -133,16 +211,20 @@ const renderMarkers = async () => {
       fillOpacity: props.selectedArea?.id === item.id ? 0.95 : 0.78,
     }) as CircleMarker
 
-    marker.bindPopup(`
-      <div style="min-width: 180px;">
-        <strong>${item.name}</strong><br />
-        平均価格: RM ${formatPrice(item.averagePrice)}<br />
-        取引件数: ${item.transactionCount} 件
-      </div>
-    `)
+    marker.bindPopup(buildPopupHtml(item), {
+      maxWidth: 1000
+    })
+    marker.bindTooltip(getMarkerLabel(item), {
+      permanent: item.areaLevel === 'station_area',
+      direction: 'top',
+      offset: [0, -10],
+      className: 'souba-map-tooltip',
+      opacity: item.areaLevel === 'station_area' ? 0.92 : 0.8,
+    })
     marker.on('click', () => {
       emit('select', item.id)
     })
+    markersByAreaId.set(item.id, marker)
     markerLayer?.addLayer(marker)
   })
 
@@ -154,6 +236,8 @@ const renderMarkers = async () => {
   } else {
     map.setView([3.139, 101.6869], 10)
   }
+
+  updateSelectedMarker()
 }
 
 onMounted(async () => {
@@ -185,10 +269,35 @@ onUnmounted(() => {
 })
 
 watch(
-  () => [props.items, props.selectedArea?.id] as const,
+  () => props.items,
   async () => {
     await renderMarkers()
   },
   { deep: true },
 )
+
+watch(
+  () => props.selectedArea?.id,
+  () => {
+    updateSelectedMarker()
+  },
+)
 </script>
+
+<style>
+.souba-map-tooltip {
+  border: 0;
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.86);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.2);
+  color: #f8fafc;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 6px 10px;
+}
+
+.souba-map-tooltip::before {
+  display: none;
+}
+</style>

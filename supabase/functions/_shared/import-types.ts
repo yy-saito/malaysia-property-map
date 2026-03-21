@@ -10,6 +10,7 @@ export type RawTransactionRow = Record<string, string>
 export type NormalizedTransactionRow = {
   propertyType: string
   schemeName: string
+  postalCode: string | null
   roadName: string | null
   district: string | null
   mukim: string | null

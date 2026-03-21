@@ -98,6 +98,40 @@ const queryNominatim = async (query: string) => {
 }
 
 const geocodeRow = async (row: NormalizedTransactionRow): Promise<GeocodedProperty | null> => {
+  if (row.postalCode) {
+    const postcodeQuery = [row.postalCode, row.district, 'Malaysia'].filter(Boolean).join(', ')
+
+    try {
+      const result = await queryNominatim(postcodeQuery)
+      if (result) {
+        return {
+          schemeName: row.schemeName,
+          resolvedAddress: result.display_name ?? null,
+          postalCode: row.postalCode,
+          stateName: result.address?.state ?? row.district ?? null,
+          postalAreaName: buildPostalAreaName(result.address),
+          latitude: toNumber(result.lat),
+          longitude: toNumber(result.lon),
+        }
+      }
+    } catch (error) {
+      console.warn('nominatim postcode lookup failed', {
+        query: postcodeQuery,
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+
+    return {
+      schemeName: row.schemeName,
+      resolvedAddress: null,
+      postalCode: row.postalCode,
+      stateName: row.district ?? null,
+      postalAreaName: null,
+      latitude: null,
+      longitude: null,
+    }
+  }
+
   const queries = [
     [row.schemeName, row.roadName, row.district, 'Malaysia'].filter(Boolean).join(', '),
     [row.schemeName, row.district, 'Malaysia'].filter(Boolean).join(', '),
@@ -155,6 +189,7 @@ export const geocodeProperties = async (
   existingPostalCodes: Map<string, string | null>,
 ) => {
   const uniqueRows = new Map<string, NormalizedTransactionRow>()
+  const geocodedMap = new Map<string, GeocodedProperty>()
 
   rows.forEach((row) => {
     const key = normalizeKey(row.schemeName)
@@ -169,7 +204,6 @@ export const geocodeProperties = async (
   })
 
   const targets = [...uniqueRows.values()].slice(0, LOOKUP_LIMIT)
-  const geocodedMap = new Map<string, GeocodedProperty>()
 
   for (const [index, row] of targets.entries()) {
     const geocoded = await geocodeRow(row)

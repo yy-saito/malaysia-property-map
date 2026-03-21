@@ -118,6 +118,8 @@
 - `Leaflet` による実地図表示を実装済み
 - エリア一覧と地図マーカーの選択連動を実装済み
 - ただし初期実装では `property_transactions` をフロント側で集計しており、大量データ時は RPC / 集計ビュー化が必要
+- 駅エリア方式に移行するための `stations` / `postal_code_station_area_mappings` 基盤を追加済み
+- KL / Selangor を中心に主要駅スターター seed を追加済み
 
 ## 直近で対応した問題
 

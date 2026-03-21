@@ -4,7 +4,7 @@ import { mapAggregationService } from '~/services/mapAggregationService'
 import { mapFilterService } from '~/services/mapFilterService'
 
 export const useSoubaMap = () => {
-  const areaLevel = useState<SoubaAreaLevel>('souba-area-level', () => 'state')
+  const areaLevel = useState<SoubaAreaLevel>('souba-area-level', () => 'station_area')
   const priceBand = useState<SoubaPriceBand>('souba-price-band', () => 'all')
   const items = ref<SoubaAreaStat[]>([])
   const isLoading = ref(false)
@@ -16,10 +16,17 @@ export const useSoubaMap = () => {
     errorMessage.value = ''
 
     try {
-      const rows = await mapRepository.fetchTransactions()
+      const [rows, stationAreaMappingRows] = await Promise.all([
+        mapRepository.fetchTransactions(),
+        mapRepository.fetchStationAreaMappings(),
+      ])
+      const stationAreaMappings = new Map(
+        stationAreaMappingRows.map((mapping) => [mapping.postal_code, mapping] as const),
+      )
       const aggregated = mapAggregationService.aggregateAreas(
         rows,
         mapFilterService.normalizeAreaLevel(areaLevel.value),
+        stationAreaMappings,
       )
 
       items.value = mapAggregationService.filterByPriceBand(

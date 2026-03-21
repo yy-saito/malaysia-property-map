@@ -52,9 +52,18 @@ export type AdminDashboardStats = {
   adminCount: number
 }
 
-export type SoubaAreaLevel = 'state' | 'postal_code_area'
+export type SoubaAreaLevel = 'state' | 'station_area'
 
 export type SoubaPriceBand = 'all' | 'low' | 'mid' | 'high'
+
+export type SoubaAreaTransaction = {
+  transactionMonth: string
+  schemeName: string
+  landArea: number | null
+  landAreaUnit: string | null
+  unitLevel: number | null
+  transactionPrice: number
+}
 
 export type SoubaAreaStat = {
   id: string
@@ -62,11 +71,14 @@ export type SoubaAreaStat = {
   areaLevel: SoubaAreaLevel
   stateName: string | null
   postalCode: string | null
+  stationAreaName: string | null
+  stationName: string | null
   latitude: number | null
   longitude: number | null
   transactionCount: number
   averagePrice: number
   averageFloorArea: number | null
+  transactions: SoubaAreaTransaction[]
 }
 
 export type SoubaSummary = {

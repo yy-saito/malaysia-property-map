@@ -8,6 +8,7 @@ import type {
 
 const PROPERTY_TYPE_HEADER = 'propertytype'
 const SCHEME_NAME_HEADER = 'schemenamearea'
+const POSTCODE_HEADER = 'postcode'
 const ROAD_NAME_HEADER = 'roadname'
 const DISTRICT_HEADER = 'district'
 const MUKIM_HEADER = 'mukim'
@@ -55,6 +56,15 @@ const parseNumber = (value: string | undefined) => {
 const parseUnitLevel = (value: string | undefined) => {
   const parsed = parseNumber(value)
   return parsed === null ? null : Math.trunc(parsed)
+}
+
+const parsePostalCode = (value: string | undefined) => {
+  if (!value) {
+    return null
+  }
+
+  const matched = value.match(/\b\d{5}\b/)
+  return matched?.[0] ?? null
 }
 
 const splitAreaValue = (value: string | undefined) => {
@@ -232,6 +242,7 @@ export const normalizeTransactions = (
     normalizedRows.push({
       propertyType,
       schemeName,
+      postalCode: parsePostalCode(row[POSTCODE_HEADER]),
       roadName: row[ROAD_NAME_HEADER]?.trim() || null,
       district,
       mukim: row[MUKIM_HEADER]?.trim() || null,
@@ -264,6 +275,7 @@ export const buildImportPreview = (
     }
 
     current.transactionCount += 1
+    current.hasPostalCode = current.hasPostalCode || Boolean(row.postalCode)
     propertyMap.set(row.schemeName, current)
   })
 
@@ -284,7 +296,7 @@ export const buildImportPreview = (
       skippedRows: skipped.length,
       newAreas: 0,
       newProperties: properties.length,
-      unresolvedAddresses: properties.length,
+      unresolvedAddresses: properties.filter((property) => !property.hasPostalCode).length,
       unresolvedCoordinates: 0,
       dryRun: payload.dryRun ?? true,
     },

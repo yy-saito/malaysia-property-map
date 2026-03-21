@@ -17,7 +17,7 @@
           <div>
             <p class="text-sm font-semibold text-slate-900">{{ item.name }}</p>
             <p class="mt-2 text-xs leading-5 text-slate-500">
-              {{ item.postalCode || item.stateName || 'Malaysia' }}
+              {{ item.stationName || item.stationAreaName || item.stateName || 'Malaysia' }}
             </p>
           </div>
           <div class="text-right">

@@ -9,6 +9,7 @@ import type {
 } from './import-types.ts'
 
 const PROPERTY_TYPE_CODE = 'condominium_apartment'
+const IMPORT_CHUNK_SIZE = 300
 
 type SupabaseAdmin = ReturnType<typeof createClient>
 
@@ -36,6 +37,16 @@ type PropertyRow = {
 }
 
 const normalizeKey = (value: string) => value.trim().toLowerCase()
+const chunkArray = <T>(items: T[], size: number) => {
+  const chunks: T[][] = []
+
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size))
+  }
+
+  return chunks
+}
+
 const toNullableText = (value: string | null | undefined) => {
   if (!value) {
     return null
@@ -134,22 +145,24 @@ const ensureStateAreas = async (
       country: 'Malaysia',
     }))
 
-    const { data: insertedAreas, error: insertError } = await supabase
-      .from('areas')
-      .insert(insertPayload)
-      .select('id, area_level, state_name')
+    for (const chunk of chunkArray(insertPayload, IMPORT_CHUNK_SIZE)) {
+      const { data: insertedAreas, error: insertError } = await supabase
+        .from('areas')
+        .insert(chunk)
+        .select('id, area_level, state_name')
 
-    if (insertError) {
-      throw new Error(`area_insert_failed:${insertError.message}`)
-    }
-
-    ;(insertedAreas ?? []).forEach((area) => {
-      if (area.state_name) {
-        areaMap.set(normalizeKey(area.state_name), area as AreaRow)
+      if (insertError) {
+        throw new Error(`area_insert_failed:${insertError.message}`)
       }
-    })
 
-    newAreasCount = insertedAreas?.length ?? 0
+      ;(insertedAreas ?? []).forEach((area) => {
+        if (area.state_name) {
+          areaMap.set(normalizeKey(area.state_name), area as AreaRow)
+        }
+      })
+
+      newAreasCount += insertedAreas?.length ?? 0
+    }
   }
 
   return {
@@ -194,6 +207,7 @@ const ensureProperties = async (
         area_id: areaId,
         property_type_id: propertyTypeId,
         scheme_name: row.schemeName,
+        postal_code: row.postalCode,
         tenure: row.tenure,
       }
     })
@@ -201,20 +215,22 @@ const ensureProperties = async (
   let newPropertiesCount = 0
 
   if (insertPayload.length > 0) {
-    const { data: insertedProperties, error: insertError } = await supabase
-      .from('properties')
-      .insert(insertPayload)
-      .select('id, scheme_name, area_id, resolved_address, postal_code, is_data_complete')
+    for (const chunk of chunkArray(insertPayload, IMPORT_CHUNK_SIZE)) {
+      const { data: insertedProperties, error: insertError } = await supabase
+        .from('properties')
+        .insert(chunk)
+        .select('id, scheme_name, area_id, resolved_address, postal_code, is_data_complete')
 
-    if (insertError) {
-      throw new Error(`property_insert_failed:${insertError.message}`)
+      if (insertError) {
+        throw new Error(`property_insert_failed:${insertError.message}`)
+      }
+
+      ;(insertedProperties ?? []).forEach((property) => {
+        propertyMap.set(normalizeKey(property.scheme_name), property as PropertyRow)
+      })
+
+      newPropertiesCount += insertedProperties?.length ?? 0
     }
-
-    ;(insertedProperties ?? []).forEach((property) => {
-      propertyMap.set(normalizeKey(property.scheme_name), property as PropertyRow)
-    })
-
-    newPropertiesCount = insertedProperties?.length ?? 0
   }
 
   return {
@@ -276,27 +292,75 @@ const ensurePostalAreas = async (
       }
     })
 
-    const { data: insertedAreas, error: insertError } = await supabase
-      .from('areas')
-      .insert(insertPayload)
-      .select('id, area_level, state_name, postal_code, latitude, longitude')
+    for (const chunk of chunkArray(insertPayload, IMPORT_CHUNK_SIZE)) {
+      const { data: insertedAreas, error: insertError } = await supabase
+        .from('areas')
+        .insert(chunk)
+        .select('id, area_level, state_name, postal_code, latitude, longitude')
 
-    if (insertError) {
-      throw new Error(`postal_area_insert_failed:${insertError.message}`)
-    }
-
-    ;(insertedAreas ?? []).forEach((area) => {
-      if (area.postal_code) {
-        postalAreaMap.set(area.postal_code, area as AreaRow)
+      if (insertError) {
+        throw new Error(`postal_area_insert_failed:${insertError.message}`)
       }
-    })
 
-    newPostalAreasCount = insertedAreas?.length ?? 0
+      ;(insertedAreas ?? []).forEach((area) => {
+        if (area.postal_code) {
+          postalAreaMap.set(area.postal_code, area as AreaRow)
+        }
+      })
+
+      newPostalAreasCount += insertedAreas?.length ?? 0
+    }
   }
 
   return {
     postalAreaMap,
     newPostalAreasCount,
+  }
+}
+
+const syncPostalAreaMappings = async (
+  supabase: SupabaseAdmin,
+  postalAreaMap: Map<string, AreaRow>,
+) => {
+  const postalCodes = [...postalAreaMap.keys()]
+
+  if (postalCodes.length === 0) {
+    return
+  }
+
+  const { data: mappings, error: mappingError } = await supabase
+    .from('postal_code_station_area_mappings')
+    .select('id, postal_code')
+    .in('postal_code', postalCodes)
+
+  if (mappingError) {
+    throw new Error(`postal_area_mapping_fetch_failed:${mappingError.message}`)
+  }
+
+  const updates = (mappings ?? [])
+    .map((mapping) => {
+      const area = postalAreaMap.get(mapping.postal_code)
+      if (!area) {
+        return null
+      }
+
+      return {
+        id: area.id,
+        station_area_mapping_id: mapping.id,
+      }
+    })
+    .filter((value): value is { id: string; station_area_mapping_id: string } => Boolean(value))
+
+  for (const chunk of chunkArray(updates, IMPORT_CHUNK_SIZE)) {
+    const { error: updateError } = await supabase
+      .from('areas')
+      .upsert(chunk, {
+        onConflict: 'id',
+      })
+
+    if (updateError) {
+      throw new Error(`postal_area_mapping_sync_failed:${updateError.message}`)
+    }
   }
 }
 
@@ -402,12 +466,14 @@ const insertTransactions = async (
     }
   })
 
-  const { error } = await supabase
-    .from('property_transactions')
-    .insert(transactionPayload)
+  for (const chunk of chunkArray(transactionPayload, IMPORT_CHUNK_SIZE)) {
+    const { error } = await supabase
+      .from('property_transactions')
+      .insert(chunk)
 
-  if (error) {
-    throw new Error(`transaction_insert_failed:${error.message}`)
+    if (error) {
+      throw new Error(`transaction_insert_failed:${error.message}`)
+    }
   }
 }
 
@@ -466,6 +532,7 @@ export const persistImport = async (
     )
     const geocodedMap = await geocodeProperties(rows, existingPostalCodes)
     const { postalAreaMap, newPostalAreasCount } = await ensurePostalAreas(supabase, geocodedMap)
+    await syncPostalAreaMappings(supabase, postalAreaMap)
     const hydratedPropertyMap = await applyPropertyGeocoding(
       supabase,
       propertyMap,
